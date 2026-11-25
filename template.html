@@ -1,0 +1,728 @@
+<title>My Way KAIST</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>/*__LEAFLET_CSS__*/</style>
+<style>
+/* Layout: one-screen tool. Desktop = control column + map; phone = map on top, controls below. */
+:root{
+  --bg:#f3f6f3; --surface:#ffffff; --ink:#16201b; --muted:#5a685f; --line:#d5ddd7;
+  --accent:#0d7a69; --accent-ink:#ffffff; --short:#4f5a66; --me:#2f6fe0;
+  --sun:#e19b12; --mid:#b9a777; --shade:#2d5e74; --cover:#3a78c2; --indoor:#7a57b8;
+  --open:#2b9550; --closed:#c4443a; --unk:#8a958e;
+  --mapbg:#eceee8; --campus-fill:#e3ebe2; --green:#cfe3c4; --water:#a9cfe6; --water-line:#7fb3d3;
+  --road:#ffffff; --road-edge:#c9cdc5; --bld:#d3d1c9; --bld-line:#b5b2a8; --shadow:#1d3a48; --campus:#7f9a88;
+  --label:#2b3530; --label-halo:#f6f7f3; --label-green:#3d6b3a; --label-water:#2c6c94;
+  --font-ui:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101613; --surface:#171f1b; --ink:#e4ebe6; --muted:#97a69d; --line:#2a3530;
+  --accent:#36c0a5; --accent-ink:#06231d; --short:#a5afb9; --me:#6c9df5;
+  --sun:#f1b33a; --mid:#a8986c; --shade:#76aec6; --cover:#6aa6ea; --indoor:#ab8ae2;
+  --open:#4cc172; --closed:#e3675c; --unk:#77847c;
+  --mapbg:#151a17; --campus-fill:#19211c; --green:#1f3122; --water:#1d3a4d; --water-line:#2d5873;
+  --road:#2c3430; --road-edge:#1e2421; --bld:#343a36; --bld-line:#454c47; --shadow:#000000; --campus:#5f7a68;
+  --label:#d9e1dc; --label-halo:#101613; --label-green:#8fc08a; --label-water:#86bde0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101613; --surface:#171f1b; --ink:#e4ebe6; --muted:#97a69d; --line:#2a3530;
+  --accent:#36c0a5; --accent-ink:#06231d; --short:#a5afb9; --me:#6c9df5;
+  --sun:#f1b33a; --mid:#a8986c; --shade:#76aec6; --cover:#6aa6ea; --indoor:#ab8ae2;
+  --open:#4cc172; --closed:#e3675c; --unk:#77847c;
+  --mapbg:#151a17; --campus-fill:#19211c; --green:#1f3122; --water:#1d3a4d; --water-line:#2d5873;
+  --road:#2c3430; --road-edge:#1e2421; --bld:#343a36; --bld-line:#454c47; --shadow:#000000; --campus:#5f7a68;
+  --label:#d9e1dc; --label-halo:#101613; --label-green:#8fc08a; --label-water:#86bde0; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:14px;line-height:1.5}
+.app{height:100%;display:grid;grid-template-columns:minmax(320px,390px) 1fr;}
+.panel{overflow-y:auto;border-right:1px solid var(--line);background:var(--bg);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px;padding-block:16px 24px;display:flex;flex-direction:column;gap:16px;min-width:0}
+#map{height:100%;background:var(--mapbg)}
+.mapwrap{position:relative;min-width:0}
+@media (max-width:760px){
+  .app{grid-template-columns:1fr;grid-template-rows:52vh auto;height:auto;min-height:100%}
+  .mapwrap{order:-1;height:52vh}
+  .panel{border-right:0;border-top:1px solid var(--line);overflow:visible;padding-right:max(16px,env(safe-area-inset-right,0px))}
+}
+header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
+header p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:3px;gap:3px}
+.tabs button,.seg button,.tools button{font:inherit;color:var(--ink);background:transparent;border:0;border-radius:6px;padding:7px 8px;cursor:pointer}
+.tabs button[aria-pressed="true"],.seg button[aria-pressed="true"],.tools button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:500}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section{display:flex;flex-direction:column;gap:14px}
+.group{display:flex;flex-direction:column;gap:8px}
+.label{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.04em}
+.od{display:grid;grid-template-columns:auto 1fr auto;gap:6px 8px;align-items:center}
+.dot{width:12px;height:12px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1.5px var(--ink)}
+.dot.o{background:var(--surface)} .dot.d{background:var(--ink)}
+input[type=text],input[type=date],select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0;width:100%}
+.pick{font:inherit;font-size:12px;color:var(--accent);background:transparent;border:1px solid var(--line);border-radius:6px;padding:5px 8px;cursor:pointer;white-space:nowrap}
+.pick[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.slider{display:grid;grid-template-columns:72px 1fr 42px;gap:8px;align-items:center}
+.slider input{width:100%;accent-color:var(--accent)}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:12.5px}
+.slider .num{text-align:right;color:var(--muted)}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:3px;gap:3px}
+.seg button{font-size:13px;padding:5px 4px}
+.when{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center}
+.when .t{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;grid-column:1/-1}
+.when input[type=range]{width:100%;accent-color:var(--accent)}
+.live{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--unk)}
+.live[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)} .live[aria-pressed="true"]::before{background:var(--accent)}
+.hint{font-size:12.5px;color:var(--muted)}
+.note{font-size:12.5px;padding:8px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--line);margin:0}
+.note.warn{border-color:color-mix(in srgb,var(--sun) 60%,var(--line))}
+.cmp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.cmp table{width:100%;border-collapse:collapse}
+.cmp th,.cmp td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line)}
+.cmp tr:last-child td{border-bottom:0}
+.cmp th{font-size:12px;font-weight:500;color:var(--muted)}
+.cmp td:first-child,.cmp th:first-child{text-align:left;color:var(--muted);font-size:12.5px}
+.cmp .mine{color:var(--accent);font-weight:500}
+.cmp th .sw{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+.why{padding:9px 10px;font-size:13px;border-top:1px solid var(--line)}
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:3px}
+.tools button{font-size:13px}
+.insp{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;display:flex;flex-direction:column;gap:8px}
+.insp h3{margin:0;font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:6px 10px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);max-height:240px;overflow-y:auto}
+.list div{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);font-size:12.5px}
+.list div:last-child{border-bottom:0}
+.list button{font:inherit;font-size:12px;color:var(--closed);background:none;border:0;cursor:pointer}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stats div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.stats b{display:block;font-family:var(--font-num);font-size:16px}
+.stats span{font-size:11.5px;color:var(--muted)}
+footer{font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.legend{position:absolute;z-index:500;right:max(10px,env(safe-area-inset-right,0px));bottom:22px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;font-size:12px;display:grid;gap:3px;color:var(--ink)}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.legend .sq{height:10px;width:12px}
+.legend .road{height:7px;background:var(--road);box-shadow:0 0 0 1px var(--road-edge)}
+@media (max-width:760px){.legend{grid-template-columns:1fr 1fr;column-gap:10px;font-size:11px;bottom:18px}}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12.5px}
+.status::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--unk)}
+.status.ok::before{background:var(--open)} .status.local::before{background:var(--sun)}
+.leaflet-container{background:var(--mapbg);font-family:var(--font-ui)}
+.leaflet-control-attribution{background:color-mix(in srgb,var(--surface) 85%,transparent)!important;color:var(--muted)!important}
+.leaflet-control-attribution a{color:var(--accent)!important}
+.leaflet-bar a{background:var(--surface);color:var(--ink);border-bottom-color:var(--line)}
+.leaflet-tooltip{background:var(--surface);color:var(--ink);border-color:var(--line);font-size:12px}
+.leaflet-tooltip-top:before{border-top-color:var(--surface)}
+/* 지도 글자: 확대 단계(z15/z16/z17)에 따라 큰 건물부터 보임 */
+.lbl{white-space:nowrap;font-size:11px;font-weight:500;color:var(--label);pointer-events:none;
+  text-shadow:0 0 2px var(--label-halo),0 0 2px var(--label-halo),0 0 3px var(--label-halo);transform:translate(-50%,-50%);width:max-content}
+.lbl.green{color:var(--label-green);font-style:italic} .lbl.water{color:var(--label-water);font-style:italic}
+.lbl.t1{font-size:12px}
+#map .lbl{display:none}
+#map.z15 .lbl.t1, #map.z16 .lbl.t1, #map.z16 .lbl.t2, #map.z17 .lbl{display:block}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <aside class="panel">
+    <header>
+      <h1>My Way KAIST</h1>
+      <p>최단거리가 항상 정답일까? 내 기준으로 고르는 캠퍼스 보행 경로</p>
+    </header>
+    <div class="tabs" role="group" aria-label="화면">
+      <button id="tab-route" aria-pressed="true">경로 찾기</button>
+      <button id="tab-survey" aria-pressed="false">현장조사</button>
+    </div>
+
+    <section id="sec-route">
+      <div class="group">
+        <span class="label">출발 · 도착</span>
+        <div class="od">
+          <span class="dot o" aria-hidden="true"></span>
+          <input id="in-o" type="text" list="bl" placeholder="건물 이름 또는 지도에서 선택" autocomplete="off">
+          <button class="pick" id="pick-o" aria-pressed="false">지도에서</button>
+          <span class="dot d" aria-hidden="true"></span>
+          <input id="in-d" type="text" list="bl" placeholder="건물 이름 또는 지도에서 선택" autocomplete="off">
+          <button class="pick" id="pick-d" aria-pressed="false">지도에서</button>
+        </div>
+        <datalist id="bl"></datalist>
+        <div class="row"><button class="btn" id="btn-loc">내 위치에서 출발</button><button class="btn" id="swap">출발·도착 바꾸기</button></div>
+        <span class="hint" id="od-hint"></span>
+      </div>
+
+      <div class="group">
+        <span class="label">언제 걷나요</span>
+        <div class="when">
+          <button class="live" id="btn-now" aria-pressed="true">지금</button>
+          <input id="in-date" type="date" aria-label="날짜">
+          <div class="t"><input id="in-time" type="range" min="300" max="1260" step="10" aria-label="시각"><span class="num" id="out-time">--:--</span></div>
+        </div>
+        <span class="hint" id="sun-hint"></span>
+      </div>
+
+      <div class="group">
+        <span class="label">나에게 중요한 것</span>
+        <div class="slider"><label for="w-d">짧은 거리</label><input id="w-d" type="range" min="0" max="100" value="30"><span class="num" id="o-d"></span></div>
+        <div class="slider"><label for="w-s">그늘</label><input id="w-s" type="range" min="0" max="100" value="50"><span class="num" id="o-s"></span></div>
+        <div class="slider"><label for="w-r">비 피하기</label><input id="w-r" type="range" min="0" max="100" value="20"><span class="num" id="o-r"></span></div>
+        <label class="row hint"><input type="checkbox" id="no-stairs"> 계단 있는 길은 아예 빼기</label>
+      </div>
+
+      <div class="group">
+        <span class="label">최단 경로보다 얼마나 더 걸어도 되나요</span>
+        <div class="seg" role="group" aria-label="우회 한도" id="seg-alpha">
+          <button data-a="0.1" aria-pressed="false">+10%</button>
+          <button data-a="0.3" aria-pressed="true">+30%</button>
+          <button data-a="0.5" aria-pressed="false">+50%</button>
+          <button data-a="9" aria-pressed="false">제한 없음</button>
+        </div>
+      </div>
+
+      <div id="result"></div>
+    </section>
+
+    <section id="sec-survey" hidden>
+      <div class="row" style="justify-content:space-between">
+        <span class="status" id="store-status">저장소 연결 중</span>
+        <span class="hint" id="store-count"></span>
+      </div>
+      <div class="tools" role="group" aria-label="조사 도구" id="tools">
+        <button data-t="ent" aria-pressed="true">입구 상태</button>
+        <button data-t="newent" aria-pressed="false">입구 추가</button>
+        <button data-t="bld" aria-pressed="false">건물 통과</button>
+        <button data-t="edge" aria-pressed="false">길 속성</button>
+        <button data-t="short" aria-pressed="false">지름길 그리기</button>
+      </div>
+      <p class="hint" id="tool-help"></p>
+      <div id="insp"></div>
+      <div class="stats" id="stats"></div>
+      <div class="group">
+        <span class="label">조사 기록</span>
+        <div class="list" id="items"></div>
+      </div>
+      <div class="row">
+        <button class="btn" id="btn-export">기록 파일로 저장</button>
+        <label class="btn" for="file-import">기록 불러오기</label>
+        <input id="file-import" type="file" accept=".json,application/json" hidden>
+      </div>
+    </section>
+
+    <footer id="foot"></footer>
+  </aside>
+  <div class="mapwrap">
+    <div id="map" role="application" aria-label="KAIST 지도"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const D = /*__DATA__*/null;
+/* ================= 기본 상수와 가정 ================= */
+const WALK = 1.3;          // 보행 속도 m/s (≈4.7 km/h), 현장 실측으로 보정 예정
+const STAIR_SLOW = 1.5;    // 계단 구간 소요시간 배수
+const BASE = 0.05;         // 모든 가중치가 0에 가까울 때 길을 헤매지 않도록 넣는 최소 거리 비용
+const INDOOR_FACTOR = 1.2; // 건물 내부 이동 거리 = 입구 간 직선거리 × 1.2
+const TREE_H = 8, TREE_R = 3; // 나무 높이·수관 반지름 가정(m)
+const STEP = 2;            // 그늘 판정 간격(m): 길을 2 m마다 점으로 나눠 그림자 안인지 검사
+const LAT0 = 36.372, LON0 = 127.363, MX = 111320 * Math.cos(LAT0 * Math.PI / 180), MY = 110574;
+const $ = s => document.querySelector(s);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const dist = (a, b) => Math.hypot((a[0] - b[0]) * MX, (a[1] - b[1]) * MY);
+const toXY = p => [(p[0] - LON0) * MX, (p[1] - LAT0) * MY];
+const fmtM = m => m >= 1000 ? (m / 1000).toFixed(2) + ' km' : Math.round(m) + ' m';
+const fmtT = s => { s = Math.round(s); return Math.floor(s / 60) + '분 ' + String(s % 60).padStart(2, '0') + '초'; };
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+                set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+
+/* ================= 원본 데이터 정리 ================= */
+const NODE = new Map(D.nodes.map(n => [String(n[0]), [n[1], n[2]]]));
+const BASE_EDGES = D.edges.map((e, i) => ({ i, u: String(e[0]), v: String(e[1]), len: e[2], cov: e[3], steps: e[4], hw: e[5], coords: e[6], way: e[7] }));
+const EKEY = new Map(BASE_EDGES.map(e => [`${e.way}:${e.u}:${e.v}`, e.i]));
+const BLD = D.buildings.map(b => ({ id: String(b[0]), name: b[1], h: b[2], assumed: !!b[3], rings: b[4], lp: b[5], area: b[6] }));
+const BLD_BY = new Map(BLD.map(b => [b.id, b]));
+const ENT = D.entrances.map(e => ({ id: String(e[0]), lon: e[1], lat: e[2], b: e[3] == null ? null : String(e[3]), kind: e[4] }));
+const CAR = new Set(['primary', 'primary_link', 'secondary', 'secondary_link', 'tertiary', 'tertiary_link', 'unclassified', 'residential', 'living_street', 'service', 'road']);
+const ROAD_W = { primary: 9, primary_link: 6, secondary: 8, secondary_link: 6, tertiary: 7, tertiary_link: 5, unclassified: 5.5, residential: 5, living_street: 5, service: 4, road: 5 };
+
+/* ================= 태양 위치 (NOAA 태양 계산식) =================
+   날짜·시각(UTC)과 위경도 -> 태양 고도(alt)·방위각(az, 북=0°, 시계방향) */
+function sunPos(date, lat = LAT0, lon = LON0) {
+  const rad = Math.PI / 180, deg = 180 / Math.PI;
+  const jd = date.getTime() / 86400000 + 2440587.5, T = (jd - 2451545) / 36525;
+  const L0 = ((280.46646 + T * (36000.76983 + T * 0.0003032)) % 360 + 360) % 360;
+  const M = 357.52911 + T * (35999.05029 - 0.0001537 * T), e = 0.016708634 - T * (0.000042037 + 0.0000001267 * T);
+  const C = Math.sin(M * rad) * (1.914602 - T * (0.004817 + 0.000014 * T)) + Math.sin(2 * M * rad) * (0.019993 - 0.000101 * T) + Math.sin(3 * M * rad) * 0.000289;
+  const om = 125.04 - 1934.136 * T, lam = L0 + C - 0.00569 - 0.00478 * Math.sin(om * rad);
+  const eps = 23 + (26 + (21.448 - T * (46.815 + T * (0.00059 - T * 0.001813))) / 60) / 60 + 0.00256 * Math.cos(om * rad);
+  const decl = Math.asin(Math.sin(eps * rad) * Math.sin(lam * rad));
+  const y = Math.tan(eps * rad / 2) ** 2;
+  const eot = 4 * deg * (y * Math.sin(2 * L0 * rad) - 2 * e * Math.sin(M * rad) + 4 * e * y * Math.sin(M * rad) * Math.cos(2 * L0 * rad) - 0.5 * y * y * Math.sin(4 * L0 * rad) - 1.25 * e * e * Math.sin(2 * M * rad));
+  const utcMin = date.getUTCHours() * 60 + date.getUTCMinutes() + date.getUTCSeconds() / 60;
+  const tst = ((utcMin + eot + 4 * lon) % 1440 + 1440) % 1440, ha = tst / 4 - 180;
+  const cz = Math.sin(lat * rad) * Math.sin(decl) + Math.cos(lat * rad) * Math.cos(decl) * Math.cos(ha * rad);
+  const zen = Math.acos(Math.max(-1, Math.min(1, cz))) * deg;
+  let az = Math.acos(Math.max(-1, Math.min(1, (Math.sin(lat * rad) * Math.cos(zen * rad) - Math.sin(decl)) / (Math.cos(lat * rad) * Math.sin(zen * rad))))) * deg;
+  az = ha > 0 ? (az + 180) % 360 : (540 - az) % 360;
+  let alt = 90 - zen; // 대기 굴절 보정(근사)
+  if (alt > -0.575) { const te = Math.tan(alt * rad); alt += (alt > 5 ? 58.1 / te - 0.07 / te ** 3 + 0.000086 / te ** 5 : 1735 + alt * (-518.2 + alt * (103.4 + alt * (-12.79 + alt * 0.711)))) / 3600; }
+  return { alt, az };
+}
+
+/* ================= 그림자 엔진 =================
+   원리: 높이 h 건물의 그림자 = 바닥면을 '그림자 벡터'(길이 h/tan(고도), 방향=태양 반대) 방향으로 쓸고 지나간 영역.
+   그래서 땅 위 점 p가 그림자 안인지 = "p에서 태양 쪽으로 그은 선분 [p − v, p]가 건물 바닥과 닿는가"로 판정한다. */
+const BX = BLD.map(b => { const r = b.rings.map(ring => ring.map(toXY)); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const [x, y] of r[0]) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); } return { r, h: b.h, x0, y0, x1, y1 }; });
+const TREES = D.trees.map(toXY);
+function inRings(x, y, rings) { let c = false; for (const r of rings) for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const a = r[i], b = r[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; }
+function segHits(px, py, qx, qy, rings) { // 선분 pq가 링 변과 교차?
+  for (const r of rings) for (let i = 0; i < r.length - 1; i++) { const [ax, ay] = r[i], [bx, by] = r[i + 1];
+    const d1 = (bx - ax) * (py - ay) - (by - ay) * (px - ax), d2 = (bx - ax) * (qy - ay) - (by - ay) * (qx - ax);
+    if ((d1 > 0) === (d2 > 0)) continue; const d3 = (qx - px) * (ay - py) - (qy - py) * (ax - px), d4 = (qx - px) * (by - py) - (qy - py) * (bx - px);
+    if ((d3 > 0) !== (d4 > 0)) return true; } return false; }
+let SH = null; // 현재 시각의 그림자 색인
+function buildShadowIndex(sun) {
+  if (sun.alt <= 2) return { night: true, sun };
+  const k = 1 / Math.tan(sun.alt * Math.PI / 180), az = sun.az * Math.PI / 180, ux = -k * Math.sin(az), uy = -k * Math.cos(az);
+  const CELL = 25, grid = new Map(), add = (x0, y0, x1, y1, item) => { for (let gx = Math.floor(x0 / CELL); gx <= Math.floor(x1 / CELL); gx++) for (let gy = Math.floor(y0 / CELL); gy <= Math.floor(y1 / CELL); gy++) { const key = gx * 100000 + gy; let a = grid.get(key); if (!a) grid.set(key, a = []); a.push(item); } };
+  BX.forEach(b => { const vx = ux * b.h, vy = uy * b.h; add(Math.min(b.x0, b.x0 + vx), Math.min(b.y0, b.y0 + vy), Math.max(b.x1, b.x1 + vx), Math.max(b.y1, b.y1 + vy), { t: 0, b, vx, vy }); });
+  TREES.forEach(([x, y]) => { const cx = x + ux * TREE_H, cy = y + uy * TREE_H; add(cx - TREE_R, cy - TREE_R, cx + TREE_R, cy + TREE_R, { t: 1, cx, cy }); });
+  return { night: false, sun, ux, uy, k, grid, CELL };
+}
+function shaded(x, y) {
+  const S = SH, a = S.grid.get(Math.floor(x / S.CELL) * 100000 + Math.floor(y / S.CELL)); if (!a) return false;
+  for (const it of a) {
+    if (it.t === 1) { if ((x - it.cx) ** 2 + (y - it.cy) ** 2 < TREE_R * TREE_R) return true; continue; }
+    const b = it.b, qx = x - it.vx, qy = y - it.vy;
+    if (Math.max(x, qx) < b.x0 || Math.min(x, qx) > b.x1 || Math.max(y, qy) < b.y0 || Math.min(y, qy) > b.y1) continue;
+    if (inRings(x, y, b.r) || inRings(qx, qy, b.r) || segHits(x, y, qx, qy, b.r)) return true;
+  }
+  return false;
+}
+function samplesOf(coords) { // 길을 STEP m 간격 점으로 (각 점이 대표하는 길이 포함)
+  const pts = []; for (let i = 1; i < coords.length; i++) { const a = toXY(coords[i - 1]), b = toXY(coords[i]); const L = Math.hypot(b[0] - a[0], b[1] - a[1]); const n = Math.max(1, Math.ceil(L / STEP));
+    for (let j = 0; j < n; j++) { const t = (j + 0.5) / n; pts.push(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, L / n); } } return pts; }
+const BASE_SAMPLES = BASE_EDGES.map(e => samplesOf(e.coords));
+let SUN = null; // 기본 간선별 햇빛 노출 길이(m)
+function sunOfSamples(pts) { if (SH.night) return 0; let s = 0; for (let i = 0; i < pts.length; i += 3) if (!shaded(pts[i], pts[i + 1])) s += pts[i + 2]; return s; }
+function computeSun() {
+  const t0 = performance.now(); SH = buildShadowIndex(sunPos(currentDate()));
+  SUN = new Float32Array(BASE_EDGES.length); if (!SH.night) BASE_EDGES.forEach((e, i) => { SUN[i] = e.cov ? 0 : sunOfSamples(BASE_SAMPLES[i]); });
+  if (G) for (const e of G.edges) if (e.kind !== 'base') e._sun = null;
+  return performance.now() - t0;
+}
+
+/* ================= 상태 ================= */
+const st = Object.assign({ o: null, d: null, live: true, date: null, min: 540, w: { d: 30, s: 50, r: 20 }, alpha: 0.3, noStairs: false, tool: 'ent' }, store.get('mwk-ui2') || {});
+st.pick = null; st.tab = 'route'; st.live = true;
+let survey = new Map(), G = null, sel = null, draft = null, db = null, dbCol = null, readOnly = false;
+function kstParts(d = new Date()) { const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d).map(x => [x.type, x.value])); return { date: `${p.year}-${p.month}-${p.day}`, min: +p.hour * 60 + +p.minute }; }
+function currentDate() { if (st.live) return new Date(); const [y, m, d] = st.date.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d) - 9 * 3600000 + st.min * 60000); }
+
+/* ================= 그래프 만들기 (원본 + 조사 기록) ================= */
+const edgeRef = new Map(); // 조사 기록 id -> 원본 간선 번호 (데이터를 새로 만들어도 위치로 다시 찾음)
+function resolveEdge(id, it) {
+  if (edgeRef.has(id)) return edgeRef.get(id);
+  let idx = it.ekey && EKEY.has(it.ekey) ? EKEY.get(it.ekey) : null;
+  if (idx == null && it.mid) { let bm = 15; for (const e of BASE_EDGES) { const m = e.coords[Math.floor(e.coords.length / 2)]; const d = dist(m, it.mid); if (d < bm) { bm = d; idx = e.i; } } }
+  edgeRef.set(id, idx); return idx;
+}
+function buildGraph() {
+  const nodes = new Map(NODE); const edges = [];
+  const closed = new Set(), entStatus = new Map(), blocked = new Set(), coverOv = new Map(), newEnts = [], passB = new Set(), shorts = [];
+  for (const [id, it] of survey) {
+    if (it.kind === 'ent') { entStatus.set(it.ent, it.status); if (it.status === 'closed') closed.add(it.ent); }
+    else if (it.kind === 'newent') newEnts.push(it);
+    else if (it.kind === 'bld' && it.pass) passB.add(it.b);
+    else if (it.kind === 'edge') { const i = resolveEdge(id, it); if (i == null) continue; if (it.attr === 'blocked') blocked.add(i); else coverOv.set(i, it.attr === 'indoor' ? 2 : 1); }
+    else if (it.kind === 'short') shorts.push(it);
+  }
+  for (const e of BASE_EDGES) {
+    if (blocked.has(e.i) || closed.has(e.u) || closed.has(e.v)) continue;
+    edges.push({ a: e.u, b: e.v, len: e.len, cov: coverOv.has(e.i) ? coverOv.get(e.i) : e.cov, steps: e.steps, base: e.i, coords: e.coords, kind: 'base' });
+  }
+  const nearest = (p, skip) => { let best = null, bd = 1e9; for (const [id, c] of nodes) { if (closed.has(id) || (skip && skip.has(id))) continue; const d = dist(p, c); if (d < bd) { bd = d; best = id; } } return [best, bd]; };
+  const extra = (o) => { o.samples = samplesOf(o.coords); edges.push(o); };
+  const openByB = new Map(), addOpen = (b, id, p) => { if (!b) return; if (!openByB.has(b)) openByB.set(b, []); openByB.get(b).push([id, p]); };
+  for (const e of ENT) if (entStatus.get(e.id) === 'open') {
+    const p = [e.lon, e.lat];
+    if (!nodes.has(e.id)) { nodes.set(e.id, p); const [n, d] = nearest(p, new Set([e.id])); if (n) extra({ a: e.id, b: n, len: d, cov: 0, steps: 0, coords: [p, nodes.get(n)], kind: 'conn' }); }
+    addOpen(e.b, e.id, p);
+  }
+  for (const it of newEnts) { if (it.status === 'closed') continue;
+    const id = 'x' + it.id, p = [it.lon, it.lat]; nodes.set(id, p); const [n, d] = nearest(p, new Set([id]));
+    if (n) extra({ a: id, b: n, len: d, cov: 0, steps: 0, coords: [p, nodes.get(n)], kind: 'conn' }); addOpen(it.b, id, p); }
+  for (const b of passB) { const L = openByB.get(b) || [];
+    for (let x = 0; x < L.length; x++) for (let y = x + 1; y < L.length; y++)
+      edges.push({ a: L[x][0], b: L[y][0], len: dist(L[x][1], L[y][1]) * INDOOR_FACTOR, cov: 2, steps: 0, coords: [L[x][1], L[y][1]], kind: 'indoor', bld: b }); }
+  for (const it of shorts) { const c = it.coords; if (!c || c.length < 2) continue;
+    const [s] = nearest(c[0]), [t] = nearest(c[c.length - 1]); if (!s || !t || s === t) continue;
+    const coords = [nodes.get(s), ...c, nodes.get(t)]; let len = 0; for (let k = 1; k < coords.length; k++) len += dist(coords[k - 1], coords[k]);
+    extra({ a: s, b: t, len, cov: it.cov || 0, steps: it.steps ? 1 : 0, coords, kind: 'short', sid: it.id }); }
+  const ids = [...nodes.keys()].filter(id => !closed.has(id)), idx = new Map(ids.map((id, k) => [id, k])), adj = ids.map(() => []);
+  edges.forEach((e, k) => { const a = idx.get(e.a), b = idx.get(e.b); if (a == null || b == null) { e.dead = true; return; } e.ia = a; e.ib = b; adj[a].push(k); adj[b].push(k); });
+  return { nodes, ids, idx, adj, edges, openByB, passB, entStatus, closed };
+}
+
+/* ================= 비용과 탐색 ================= */
+function sunLen(e) { if (e.cov || SH.night) return 0; if (e.kind === 'base') return SUN[e.base]; if (e._sun == null) e._sun = sunOfSamples(e.samples); return e._sun; }
+function dijkstra(cost, s, t) {
+  const n = G.ids.length, dd = new Float64Array(n).fill(Infinity), pe = new Int32Array(n).fill(-1), h = [[0, s]]; dd[s] = 0;
+  const push = x => { h.push(x); let i = h.length - 1; while (i) { const p = (i - 1) >> 1; if (h[p][0] <= h[i][0]) break; [h[p], h[i]] = [h[i], h[p]]; i = p; } };
+  const pop = () => { const top = h[0], last = h.pop(); if (h.length) { h[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < h.length && h[l][0] < h[m][0]) m = l; if (r < h.length && h[r][0] < h[m][0]) m = r; if (m === i) break; [h[m], h[i]] = [h[i], h[m]]; i = m; } } return top; };
+  while (h.length) { const [c, u] = pop(); if (c > dd[u]) continue; if (u === t) break;
+    for (const k of G.adj[u]) { const e = G.edges[k]; const w = cost(e); if (w === Infinity) continue; const v = e.ia === u ? e.ib : e.ia; if (c + w < dd[v]) { dd[v] = c + w; pe[v] = k; push([c + w, v]); } } }
+  if (dd[t] === Infinity) return null;
+  const path = []; let u = t; while (u !== s) { const k = pe[u]; path.push(k); const e = G.edges[k]; u = e.ia === u ? e.ib : e.ia; } return path.reverse();
+}
+function metrics(path) {
+  const m = { len: 0, time: 0, sun: 0, rain: 0, shelter: 0, steps: 0 };
+  for (const k of path) { const e = G.edges[k]; m.len += e.len; m.time += e.len / WALK * (e.steps ? STAIR_SLOW : 1); m.sun += sunLen(e); if (!e.cov) m.rain += e.len; else m.shelter += e.len; if (e.steps) m.steps++; }
+  return m;
+}
+function weights() { const { d, s, r } = st.w, sum = d + s + r; if (!sum) return { d: 1, s: 0, r: 0, zero: true }; return { d: d / sum, s: s / sum, r: r / sum }; }
+function solve() {
+  const o = G.idx.get(st.o), d = G.idx.get(st.d); if (o == null || d == null || o === d) return null;
+  const w = weights(), stairs = st.noStairs;
+  const lenCost = e => (stairs && e.steps) ? Infinity : e.len;
+  const pref = e => (stairs && e.steps) ? Infinity : BASE * e.len + w.d * e.len + w.s * sunLen(e) + w.r * (e.cov ? 0 : e.len);
+  const P0 = dijkstra(lenCost, o, d); if (!P0) return { none: true };
+  const L0 = metrics(P0).len, cap = (1 + st.alpha) * L0;
+  let P = dijkstra(pref, o, d), capped = false; const raw = P ? metrics(P).len : null;
+  if (P && raw > cap + 0.01) { // 우회 한도 초과 -> 거리 비중 t를 이분 탐색으로 올려 한도 안의 경로를 찾음
+    capped = true; let lo = 0, hi = 1, best = P0;
+    for (let it = 0; it < 12; it++) { const t = (lo + hi) / 2; const Q = dijkstra(e => { const a = pref(e); return a === Infinity ? a : (1 - t) * a + t * e.len; }, o, d);
+      if (Q && metrics(Q).len <= cap + 0.01) { hi = t; best = Q; } else lo = t; }
+    P = best;
+  }
+  return { P0, P, m0: metrics(P0), m1: metrics(P), capped, raw, L0, w };
+}
+
+/* ================= 지도 ================= */
+const map = L.map('map', { zoomControl: true, preferCanvas: true, maxZoom: 19, minZoom: 14 });
+map.attributionControl.setPrefix(false).addAttribution('지도 데이터 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> 기여자 (ODbL)');
+const rend = L.canvas({ tolerance: 7 });
+const lyr = {}; ['ground', 'green', 'water', 'roads', 'shadow', 'bld', 'edges', 'extra', 'route', 'ent', 'me', 'draft', 'labels'].forEach(k => lyr[k] = L.layerGroup().addTo(map));
+const ll = c => [c[1], c[0]];
+let bldPolys = new Map(), roadLines = [];
+const zs = () => Math.pow(2, map.getZoom() - 16); // 확대할수록 도로 띠를 굵게
+
+function drawStatic() {
+  ['ground', 'green', 'water', 'roads', 'bld', 'labels'].forEach(k => lyr[k].clearLayers()); bldPolys.clear(); roadLines = [];
+  L.polygon(D.campus.map(ll), { renderer: rend, interactive: false, stroke: true, color: css('--campus'), weight: 1.2, dashArray: '4 5', fillColor: css('--campus-fill'), fillOpacity: 1 }).addTo(lyr.ground);
+  for (const g of D.green) L.polygon(g.rings.map(r => r.map(ll)), { renderer: rend, interactive: false, stroke: false, fillColor: css('--green'), fillOpacity: 1 }).addTo(lyr.green);
+  for (const w of D.water) {
+    if (w.rings) L.polygon(w.rings.map(r => r.map(ll)), { renderer: rend, interactive: false, color: css('--water-line'), weight: 1, fillColor: css('--water'), fillOpacity: 1 }).addTo(lyr.water);
+    else L.polyline(w.line.map(ll), { renderer: rend, interactive: false, color: css('--water-line'), weight: 2 }).addTo(lyr.water);
+  }
+  // 차도: 흰 띠(테두리 포함). 인도·산책로는 띠 없이 가는 선(아래 drawEdges)
+  const car = BASE_EDGES.filter(e => CAR.has(e.hw));
+  for (const pass of [0, 1]) for (const e of car) {
+    const l = L.polyline(e.coords.map(ll), { renderer: rend, interactive: false, color: css(pass ? '--road' : '--road-edge'), lineCap: 'round', lineJoin: 'round' }).addTo(lyr.roads);
+    roadLines.push([l, ROAD_W[e.hw] || 5, pass]);
+  }
+  styleRoads();
+  for (const b of BLD) {
+    const p = L.polygon(b.rings.map(r => r.map(ll)), { renderer: rend, color: css('--bld-line'), weight: 1, fillColor: css('--bld'), fillOpacity: 1 }).addTo(lyr.bld);
+    p.on('click', ev => onBuildingClick(b, ev)); if (b.name) p.bindTooltip(b.name, { sticky: true, direction: 'top' }); bldPolys.set(b.id, p);
+  }
+  // 이름 글자: 면적이 큰 건물일수록 먼 거리(낮은 확대)에서도 보임
+  const lab = (p, text, cls) => { const m = L.marker(ll(p), { interactive: false, keyboard: false, icon: L.divIcon({ className: '', html: `<div class="lbl ${cls}"></div>`, iconSize: [0, 0] }) }).addTo(lyr.labels);
+    const el = m.getElement()?.querySelector('.lbl'); if (el) el.textContent = text; };
+  for (const b of BLD) if (b.name) lab(b.lp, b.name, b.area >= 4000 ? 't1' : b.area >= 1200 ? 't2' : 't3');
+  for (const l of D.labels) lab(l.lp, l.name, `${l.kind} ${l.area > 8000 ? 't1' : 't2'}`);
+}
+function styleRoads() { const s = Math.max(0.5, zs()); for (const [l, w, pass] of roadLines) l.setStyle({ weight: pass ? w * s : w * s + 2 }); }
+function zoomClass() { const z = map.getZoom(), el = map.getContainer(); el.classList.remove('z15', 'z16', 'z17'); if (z >= 17) el.classList.add('z17'); else if (z >= 16) el.classList.add('z16'); else if (z >= 15) el.classList.add('z15'); }
+map.on('zoomend', () => { styleRoads(); zoomClass(); });
+
+function drawEdges() {
+  lyr.edges.clearLayers(); lyr.extra.clearLayers();
+  const col = { sun: css('--sun'), mid: css('--mid'), shade: css('--shade'), cover: css('--cover'), indoor: css('--indoor'), closed: css('--closed') };
+  G.edges.forEach((e, k) => {
+    if (e.dead) return;
+    const isCar = e.kind === 'base' && CAR.has(BASE_EDGES[e.base].hw);
+    let c, dash = null;
+    if (e.cov === 2) { c = col.indoor; dash = e.kind === 'indoor' ? '2 5' : null; }
+    else if (e.cov === 1) c = col.cover;
+    else if (SH.night) c = col.mid;
+    else { const f = e.len ? sunLen(e) / e.len : 1; c = f > 0.66 ? col.sun : f > 0.33 ? col.mid : col.shade; }
+    if (e.steps) dash = '1 4';
+    L.polyline(e.coords.map(ll), { renderer: rend, color: c, weight: e.kind === 'short' ? 3.4 : isCar ? 1.4 : 2.6, opacity: isCar ? 0.75 : 0.95, dashArray: dash, lineCap: 'round' })
+      .addTo(e.kind === 'base' ? lyr.edges : lyr.extra).on('click', ev => onEdgeClick(e, k, ev));
+  });
+  for (const [id, it] of survey) if (it.kind === 'edge' && it.attr === 'blocked') { const i = resolveEdge(id, it), e = BASE_EDGES[i]; if (!e) continue;
+    L.polyline(e.coords.map(ll), { renderer: rend, color: col.closed, weight: 2.4, dashArray: '3 4', opacity: 0.9 }).addTo(lyr.extra).on('click', ev => onEdgeClick({ kind: 'base', base: e.i }, -1, ev)); }
+}
+function drawShadow() {
+  lyr.shadow.clearLayers(); if (!SH || SH.night) return;
+  const ux = SH.ux / MX, uy = SH.uy / MY, rings = [];
+  const ccw = r => { let a = 0; for (let i = 0; i < r.length - 1; i++) a += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]; return a >= 0 ? r : r.slice().reverse(); };
+  for (const b of BLD) { const vx = ux * b.h, vy = uy * b.h, P = b.rings[0], T = P.map(p => [p[0] + vx, p[1] + vy]);
+    rings.push(ccw(T)); for (let i = 0; i < P.length - 1; i++) rings.push(ccw([P[i], P[i + 1], T[i + 1], T[i], P[i]])); }
+  for (const [x, y] of TREES) { const cx = (x + SH.ux * TREE_H) / MX + LON0, cy = (y + SH.uy * TREE_H) / MY + LAT0, r = []; for (let a = 0; a <= 12; a++) r.push([cx + TREE_R * Math.cos(a / 6 * Math.PI) / MX, cy + TREE_R * Math.sin(a / 6 * Math.PI) / MY]); rings.push(r); }
+  L.polygon(rings.map(r => [r.map(ll)]), { renderer: rend, interactive: false, stroke: false, fillColor: css('--shadow'), fillOpacity: 0.2, fillRule: 'nonzero' }).addTo(lyr.shadow);
+}
+function entColor(s) { return s === 'open' ? css('--open') : s === 'closed' ? css('--closed') : css('--unk'); }
+function drawEnts() {
+  lyr.ent.clearLayers(); const sv = st.tab === 'survey';
+  for (const e of ENT) { const s = G.entStatus.get(e.id) || 'unknown'; if (!sv && s !== 'open') continue;
+    L.circleMarker([e.lat, e.lon], { renderer: rend, radius: sv ? 5 : 3.5, color: css('--surface'), weight: 1.5, fillColor: entColor(s), fillOpacity: 1 }).addTo(lyr.ent).on('click', ev => { L.DomEvent.stop(ev); onEntClick(e); }); }
+  for (const it of survey.values()) if (it.kind === 'newent')
+    L.circleMarker([it.lat, it.lon], { renderer: rend, radius: sv ? 6 : 4, color: css('--ink'), weight: 1.5, fillColor: entColor(it.status), fillOpacity: 1 }).addTo(lyr.ent).on('click', ev => { L.DomEvent.stop(ev); onNewEntClick(it); });
+}
+function styleBuildings() {
+  for (const [id, p] of bldPolys) { const pass = G.passB.has(id), isSel = sel && sel.type === 'bld' && sel.b.id === id;
+    p.setStyle({ color: isSel ? css('--accent') : pass ? css('--indoor') : css('--bld-line'), weight: isSel ? 2.5 : pass ? 2 : 1, fillColor: pass ? css('--indoor') : css('--bld'), fillOpacity: pass ? 0.4 : 1 }); }
+}
+function drawRoute(R) {
+  lyr.route.clearLayers();
+  const pt = (id, filled) => { const c = G.nodes.get(id); if (c) L.circleMarker(ll(c), { renderer: rend, radius: 7, color: css('--ink'), weight: 2.5, fillColor: filled ? css('--ink') : css('--surface'), fillOpacity: 1, interactive: false }).addTo(lyr.route); };
+  if (R && R.P) { const draw = (P, o) => P.forEach(k => L.polyline(G.edges[k].coords.map(ll), Object.assign({ renderer: rend, interactive: false, lineCap: 'round', lineJoin: 'round' }, o)).addTo(lyr.route));
+    draw(R.P0, { color: css('--surface'), weight: 7, opacity: 0.9 }); draw(R.P0, { color: css('--short'), weight: 3.5, dashArray: '7 7' });
+    draw(R.P, { color: css('--surface'), weight: 9, opacity: 0.9 }); draw(R.P, { color: css('--accent'), weight: 5.5 }); }
+  if (st.o) pt(st.o, false); if (st.d) pt(st.d, true);
+}
+function drawDraft() { lyr.draft.clearLayers(); if (!draft || !draft.length) return;
+  L.polyline(draft.map(ll), { renderer: rend, color: css('--accent'), weight: 3.5, dashArray: '6 5', interactive: false }).addTo(lyr.draft);
+  draft.forEach(c => L.circleMarker(ll(c), { renderer: rend, radius: 4, color: css('--accent'), fillColor: css('--surface'), fillOpacity: 1, weight: 2, interactive: false }).addTo(lyr.draft)); }
+function legend() {
+  $('#legend').innerHTML = [['--sun', '햇빛 받는 길'], ['--mid', '일부 그늘'], ['--shade', '그늘진 길'], ['--cover', '지붕 있는 길'], ['--indoor', '실내 통로']]
+    .map(([v, t]) => `<span><i style="background:var(${v})"></i>${t}</span>`).join('') +
+    `<span><i class="road"></i>차도</span><span><i class="sq" style="background:var(--shadow);opacity:.35"></i>그림자</span>` +
+    `<span><i style="background:var(--accent);height:5px"></i>나의 길</span><span><i style="background:repeating-linear-gradient(90deg,var(--short) 0 5px,transparent 5px 9px)"></i>최단 경로</span>`;
+}
+
+/* ================= 경로 화면 ================= */
+function nodeNear(p) { let best = null, bd = 1e9; for (const id of G.ids) { const d = dist(p, G.nodes.get(id)); if (d < bd) { bd = d; best = id; } } return [best, bd]; }
+function nodeForBuilding(b) {
+  const opens = (G.openByB.get(b.id) || []).map(x => x[0]).filter(id => G.idx.has(id));
+  const ents = ENT.filter(e => e.b === b.id && G.idx.has(e.id) && G.entStatus.get(e.id) !== 'closed').map(e => e.id);
+  const pool = opens.length ? opens : ents, c = b.lp;
+  if (pool.length) return pool.sort((x, y) => dist(G.nodes.get(x), c) - dist(G.nodes.get(y), c))[0];
+  return nodeNear(c)[0];
+}
+function labelFor(id) {
+  if (!id) return ''; const c = G.nodes.get(id); if (!c) return '';
+  let best = null, bd = 60; for (const b of BLD) { if (!b.name) continue; for (const p of b.rings[0]) { const d = dist(c, p); if (d < bd) { bd = d; best = b; } } }
+  return best ? best.name + ' 부근' : `지도 지점 (${c[1].toFixed(5)}, ${c[0].toFixed(5)})`;
+}
+function setOD(which, id, label) { st[which] = id; $('#in-' + which).value = label ?? labelFor(id); st.pick = null; syncPick(); saveUI(); refreshRoute(); }
+function syncPick() { $('#pick-o').setAttribute('aria-pressed', st.pick === 'o'); $('#pick-d').setAttribute('aria-pressed', st.pick === 'd');
+  $('#od-hint').textContent = st.pick ? (st.pick === 'o' ? '지도에서 출발 지점을 누르세요' : '지도에서 도착 지점을 누르세요') : ''; }
+function syncTimeUI() {
+  const k = st.live ? kstParts() : { date: st.date, min: st.min };
+  $('#btn-now').setAttribute('aria-pressed', st.live); $('#in-date').value = k.date; $('#in-time').value = Math.min(1260, Math.max(300, k.min));
+  $('#out-time').textContent = String(Math.floor(k.min / 60)).padStart(2, '0') + ':' + String(k.min % 60).padStart(2, '0');
+  const s = SH.sun; $('#sun-hint').textContent = SH.night ? `${st.live ? '지금은 ' : ''}해가 낮거나 진 시각이라 그늘 조건은 계산에서 빠집니다 (태양 고도 ${s.alt.toFixed(1)}°).`
+    : `태양 고도 ${s.alt.toFixed(1)}°, 방위 ${s.az.toFixed(0)}° · 건물 높이 1 m당 그림자 ${SH.k.toFixed(2)} m${st.live ? ' · 5분마다 자동 갱신' : ''}`;
+}
+function refreshRoute() {
+  const el = $('#result');
+  ['d', 's', 'r'].forEach(k => { $('#o-' + k).textContent = Math.round(weights()[k] * 100) + '%'; });
+  if (!st.o || !st.d) { el.innerHTML = `<p class="note">출발지와 도착지를 정하면 최단 경로와 나의 길을 비교해 보여 줍니다.</p>`; drawRoute(null); return; }
+  const R = solve();
+  if (!R) { el.innerHTML = `<p class="note">출발지와 도착지가 같습니다.</p>`; drawRoute(null); return; }
+  if (R.none) { el.innerHTML = `<p class="note warn">두 지점을 잇는 길이 없습니다. 계단 제외나 막힌 길 때문일 수 있어요. 조건을 바꾸거나 현장조사에서 길을 추가해 보세요.</p>`; drawRoute(null); return; }
+  drawRoute(R);
+  const a = R.m0, b = R.m1, pct = (x, t) => t ? Math.round(x / t * 100) + '%' : '0%';
+  const same = R.P.length === R.P0.length && R.P.every((k, i) => k === R.P0[i]);
+  const rows = [['거리', fmtM(a.len), fmtM(b.len)], ['예상 시간', fmtT(a.time), fmtT(b.time)],
+    ['햇빛 노출', `${fmtM(a.sun)} · ${pct(a.sun, a.len)}`, `${fmtM(b.sun)} · ${pct(b.sun, b.len)}`],
+    ['비 맞는 구간', `${fmtM(a.rain)} · ${pct(a.rain, a.len)}`, `${fmtM(b.rain)} · ${pct(b.rain, b.len)}`],
+    ['지붕·실내', fmtM(a.shelter), fmtM(b.shelter)], ['계단 구간', a.steps + '곳', b.steps + '곳']];
+  const dt = b.time - a.time, parts = [];
+  if (Math.abs(a.sun - b.sun) >= 5) parts.push(`햇빛 노출 ${fmtM(Math.abs(a.sun - b.sun))} ${b.sun < a.sun ? '줄임' : '늘어남'}`);
+  if (Math.abs(a.rain - b.rain) >= 5) parts.push(`비 맞는 구간 ${fmtM(Math.abs(a.rain - b.rain))} ${b.rain < a.rain ? '줄임' : '늘어남'}`);
+  const why = same ? (SH.night ? '해가 진 시각이라 그늘 차이가 없어, 지금 조건에서는 최단 경로와 같습니다.' : '지금 조건에서는 최단 경로가 나의 길과 같습니다.')
+    : `${parts.join(', ') || '선호 조건을 조금 더 반영'}, 대신 ${fmtT(Math.max(dt, 0)).replace(/^0분 /, '')} 더 걷습니다 (+${Math.round((b.len / a.len - 1) * 100)}%).`;
+  let notes = '';
+  if (R.w.zero) notes += `<p class="note">세 조건이 모두 0이라 짧은 거리를 기준으로 계산했습니다.</p>`;
+  if (R.capped) notes += `<p class="note warn">선호만 따르면 최단보다 ${Math.round((R.raw / R.L0 - 1) * 100)}% 더 걸어야 해서, 우회 한도(+${Math.round(st.alpha * 100)}%) 안에서 가장 선호에 가까운 길을 골랐습니다.</p>`;
+  el.innerHTML = `<div class="cmp"><table><thead><tr><th></th><th><span class="sw" style="background:var(--short)"></span>최단</th><th class="mine"><span class="sw" style="background:var(--accent)"></span>나의 길</th></tr></thead><tbody>${rows.map(r => `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num mine">${r[2]}</td></tr>`).join('')}</tbody></table><div class="why">${why}</div></div>${notes}`;
+}
+function retime() { computeSun(); syncTimeUI(); drawShadow(); drawEdges(); refreshRoute(); }
+
+/* 내 위치: 기기 위치 권한이 있는 주소(예: GitHub Pages)에서만 동작 */
+$('#btn-loc').onclick = () => {
+  const hint = $('#od-hint');
+  if (!navigator.geolocation) { hint.textContent = '이 브라우저는 위치 기능을 지원하지 않습니다.'; return; }
+  hint.textContent = '위치를 확인하는 중입니다…';
+  navigator.geolocation.getCurrentPosition(pos => {
+    const p = [pos.coords.longitude, pos.coords.latitude], [n, d] = nodeNear(p);
+    lyr.me.clearLayers();
+    L.circle(ll(p), { renderer: rend, radius: Math.min(pos.coords.accuracy, 80), color: css('--me'), weight: 1, fillColor: css('--me'), fillOpacity: 0.12, interactive: false }).addTo(lyr.me);
+    L.circleMarker(ll(p), { renderer: rend, radius: 6, color: css('--surface'), weight: 2.5, fillColor: css('--me'), fillOpacity: 1, interactive: false }).addTo(lyr.me);
+    if (d > 300) { hint.textContent = `지도 범위에서 ${fmtM(d)} 떨어져 있어 출발지로 쓰지 않았습니다.`; return; }
+    setOD('o', n, '내 위치'); hint.textContent = `내 위치 정확도 약 ${Math.round(pos.coords.accuracy)} m`;
+  }, err => { hint.textContent = err.code === 1 ? '위치 권한이 없습니다. 이 화면에서는 위치를 쓸 수 없을 수 있어요. 공개 주소(GitHub Pages)에서 열면 사용할 수 있습니다.' : '위치를 가져오지 못했습니다. 잠시 후 다시 눌러 주세요.'; },
+  { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+};
+
+/* ================= 현장조사 ================= */
+const HELP = {
+  ent: '입구 점을 눌러 실제로 드나들 수 있는지 표시합니다. 회색은 아직 확인하지 않은 입구입니다. 확인 안 된 입구는 건물 통과 경로에 쓰지 않습니다.',
+  newent: '지도에 없는 입구 위치를 누르면 추가됩니다. 건물 외곽선 가까이(15 m 이내) 눌러 주세요.',
+  bld: '건물을 눌러 안을 지나 다닐 수 있는지 표시합니다. 통과 가능한 건물은 사용 가능한 입구끼리 실내 통로로 연결됩니다.',
+  edge: '길을 눌러 지붕(필로티·처마)이 있는지, 실내인지, 실제로는 막혀 있는지 표시합니다.',
+  short: '지도에 없는 지름길을 점을 찍어 그립니다. 양 끝은 가장 가까운 길에 자동으로 이어집니다.',
+};
+const KIND_LABEL = { main: '정문', yes: '입구', secondary: '보조 출입구', staircase: '계단 출입구' };
+function inPoly(p, poly) { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[i], b = poly[j]; if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; }
+function segDist(p, a, b) { const ax = (a[0] - p[0]) * MX, ay = (a[1] - p[1]) * MY, bx = (b[0] - p[0]) * MX, by = (b[1] - p[1]) * MY, dx = bx - ax, dy = by - ay;
+  const t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(ax + t * dx, ay + t * dy); }
+function bldNear(p, maxM) { let best = null, bd = maxM;
+  for (const b of BLD) { const poly = b.rings[0]; if (inPoly(p, poly)) return [b, 0]; for (let i = 0; i < poly.length - 1; i++) { const d = segDist(p, poly[i], poly[i + 1]); if (d < bd) { bd = d; best = b; } } } return [best, bd]; }
+function rid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function onEntClick(e) { if (st.tab !== 'survey') return; sel = { type: 'ent', e }; renderInsp(); }
+function onNewEntClick(it) { if (st.tab !== 'survey') return; sel = { type: 'newent', it }; renderInsp(); }
+function onBuildingClick(b, ev) {
+  if (st.tab === 'route') { if (st.pick) { L.DomEvent.stop(ev); const n = nodeForBuilding(b); setOD(st.pick, n, b.name || labelFor(n)); } return; }
+  if (st.tool === 'bld') { L.DomEvent.stop(ev); sel = { type: 'bld', b }; styleBuildings(); renderInsp(); }
+}
+function onEdgeClick(e, k, ev) {
+  if (st.tab !== 'survey' || st.tool !== 'edge') return; L.DomEvent.stop(ev);
+  if (e.kind === 'short') { sel = { type: 'short', it: survey.get('sc-' + e.sid) }; renderInsp(); return; }
+  if (e.kind !== 'base') return; sel = { type: 'edge', i: e.base }; renderInsp();
+}
+map.on('click', ev => {
+  const p = [ev.latlng.lng, ev.latlng.lat];
+  if (st.tab === 'route') { if (!st.pick) return; const [n, d] = nodeNear(p); if (d > 150) { $('#od-hint').textContent = '근처에 길이 없습니다. 지도 범위 안을 눌러 주세요.'; return; } setOD(st.pick, n); return; }
+  if (st.tool === 'newent') { const [b] = bldNear(p, 15);
+    if (!b) { $('#tool-help').textContent = '15 m 안에 건물이 없습니다. 건물 외곽선 가까이 눌러 주세요.'; return; }
+    const it = { kind: 'newent', id: rid(), lon: +p[0].toFixed(7), lat: +p[1].toFixed(7), b: b.id, bname: b.name || null, status: 'open', note: '' };
+    put('ne-' + it.id, it); sel = { type: 'newent', it }; renderInsp(); return; }
+  if (st.tool === 'short') { draft = draft || []; draft.push([+p[0].toFixed(7), +p[1].toFixed(7)]); drawDraft(); renderInsp(); }
+});
+function chips(opts, cur, cb) { const w = document.createElement('div'); w.className = 'chips';
+  opts.forEach(([v, t]) => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = t; b.setAttribute('aria-pressed', v === cur); b.onclick = () => cb(v); w.append(b); }); return w; }
+function surveyIdOfSel() { if (!sel) return null; if (sel.type === 'ent') return 'es-' + sel.e.id; if (sel.type === 'newent') return 'ne-' + sel.it.id; if (sel.type === 'bld') return 'bp-' + sel.b.id;
+  if (sel.type === 'edge') { const found = [...survey.keys()].find(id => survey.get(id).kind === 'edge' && resolveEdge(id, survey.get(id)) === sel.i); const e = BASE_EDGES[sel.i]; return found || `ea-${e.way}-${e.u}-${e.v}`; }
+  return 'sc-' + (sel.it && sel.it.id); }
+function renderInsp() {
+  const box = $('#insp'); box.innerHTML = ''; const card = document.createElement('div'); card.className = 'insp';
+  const h = t => { const x = document.createElement('h3'); x.textContent = t; card.append(x); };
+  const p = (t, cls = 'hint') => { const x = document.createElement('p'); x.className = cls; x.style.margin = 0; x.textContent = t; card.append(x); };
+  if (st.tab === 'survey' && st.tool === 'short' && !(sel && sel.type === 'short')) {
+    h('지름길 그리기'); p(draft && draft.length ? `점 ${draft.length}개 · 약 ${fmtM(draft.reduce((a, c, i) => i ? a + dist(draft[i - 1], c) : 0, 0))}` : '지도에 지름길이 지나는 지점을 차례로 누르세요.');
+    const cov = { v: 0 }; card.append(chips([[0, '바깥길'], [1, '지붕 있음'], [2, '실내']], 0, v => { cov.v = v; [...card.querySelectorAll('.chips .chip')].forEach((b, i) => b.setAttribute('aria-pressed', i === v)); }));
+    const row = document.createElement('div'); row.className = 'row';
+    const ok = Object.assign(document.createElement('button'), { className: 'btn primary', textContent: '지름길 저장' }); ok.disabled = !draft || draft.length < 2;
+    ok.onclick = () => { const id = rid(); put('sc-' + id, { kind: 'short', id, coords: draft, cov: cov.v, note: '' }); draft = null; drawDraft(); renderInsp(); };
+    const undo = Object.assign(document.createElement('button'), { className: 'btn', textContent: '마지막 점 지우기' }); undo.disabled = !draft || !draft.length; undo.onclick = () => { draft.pop(); drawDraft(); renderInsp(); };
+    const cancel = Object.assign(document.createElement('button'), { className: 'btn', textContent: '취소' }); cancel.onclick = () => { draft = null; drawDraft(); renderInsp(); };
+    row.append(ok, undo, cancel); card.append(row); box.append(card); return;
+  }
+  if (!sel) return;
+  const docId = surveyIdOfSel();
+  if (sel.type === 'ent') { const e = sel.e, b = BLD_BY.get(e.b), cur = survey.get(docId)?.status || 'unknown';
+    h(`${b?.name || '이름 없는 건물'} · ${KIND_LABEL[e.kind] || '입구'}`); p(`OSM 입구 #${e.id}`);
+    card.append(chips([['open', '사용 가능'], ['closed', '막힘'], ['unknown', '미확인']], cur, v => { if (v === 'unknown') del(docId); else put(docId, { kind: 'ent', ent: e.id, b: e.b, bname: b?.name || null, status: v, note: survey.get(docId)?.note || '' }); }));
+  } else if (sel.type === 'newent') { const it = survey.get(docId) || sel.it; h(`새 입구 · ${it.bname || '이름 없는 건물'}`);
+    card.append(chips([['open', '사용 가능'], ['closed', '막힘']], it.status, v => put(docId, Object.assign({}, it, { status: v }))));
+    const rm = Object.assign(document.createElement('button'), { className: 'btn', textContent: '이 입구 지우기' }); rm.onclick = () => { del(docId); sel = null; renderInsp(); }; card.append(rm);
+  } else if (sel.type === 'bld') { const b = sel.b, cur = survey.get(docId)?.pass ? 'y' : 'n', n = (G.openByB.get(b.id) || []).length;
+    h(b.name || '이름 없는 건물'); p(`높이 ${b.h} m${b.assumed ? ' (층수 정보 없음, 가정값)' : ''} · 사용 가능으로 확인된 입구 ${n}개`);
+    card.append(chips([['y', '안으로 지나갈 수 있음'], ['n', '지나갈 수 없음']], cur, v => { if (v === 'n') del(docId); else put(docId, { kind: 'bld', b: b.id, bname: b.name || null, pass: true, note: survey.get(docId)?.note || '' }); }));
+    if (n < 2) p('실내 통로가 생기려면 이 건물 입구 2개 이상을 "사용 가능"으로 표시해야 합니다.', 'note');
+  } else if (sel.type === 'edge') { const e = BASE_EDGES[sel.i], cur = survey.get(docId)?.attr || 'base';
+    h('길 구간'); p(`${CAR.has(e.hw) ? '차도 옆' : '보행로'} (${e.hw}) · ${fmtM(e.len)} · 지도 원본: ${['바깥길', '지붕 있음', '실내'][e.cov]}${e.steps ? ' · 계단' : ''}`);
+    card.append(chips([['base', '원본대로'], ['covered', '지붕 있음'], ['indoor', '실내'], ['blocked', '막혀 있음']], cur, v => {
+      if (v === 'base') del(docId); else { const c = e.coords[Math.floor(e.coords.length / 2)]; edgeRef.set(docId, e.i); put(docId, { kind: 'edge', edge: e.i, ekey: `${e.way}:${e.u}:${e.v}`, mid: c, attr: v, note: survey.get(docId)?.note || '' }); } }));
+    L.polyline(e.coords.map(ll), { renderer: rend, color: css('--accent'), weight: 7, opacity: 0.45, interactive: false }).addTo(lyr.draft); setTimeout(() => { if (!draft) lyr.draft.clearLayers(); }, 1400);
+  } else if (sel.type === 'short') { const it = sel.it; if (!it) return; h('직접 그린 지름길');
+    card.append(chips([[0, '바깥길'], [1, '지붕 있음'], [2, '실내']], it.cov || 0, v => put(docId, Object.assign({}, it, { cov: v }))));
+    const rm = Object.assign(document.createElement('button'), { className: 'btn', textContent: '이 지름길 지우기' }); rm.onclick = () => { del(docId); sel = null; renderInsp(); }; card.append(rm); }
+  const ex = survey.get(docId);
+  if (ex) { const note = document.createElement('input'); note.type = 'text'; note.id = 'insp-note'; note.placeholder = '메모 (예: 평일 18시 이후 잠김)'; note.value = ex.note || '';
+    note.onchange = () => put(docId, Object.assign({}, survey.get(docId), { note: note.value.slice(0, 200) })); card.append(note); }
+  box.append(card);
+}
+function itemLabel(id, it) { const S = { open: '사용 가능', closed: '막힘' };
+  if (it.kind === 'ent') return `입구 ${S[it.status]} · ${it.bname || '건물'}`;
+  if (it.kind === 'newent') return `새 입구 ${S[it.status]} · ${it.bname || '건물'}`;
+  if (it.kind === 'bld') return `통과 가능 · ${it.bname || '건물'}`;
+  if (it.kind === 'edge') { const i = resolveEdge(id, it); return `길 ${{ covered: '지붕 있음', indoor: '실내', blocked: '막힘' }[it.attr]} · ${i == null ? '위치 확인 필요' : fmtM(BASE_EDGES[i].len)}`; }
+  if (it.kind === 'short') return `지름길 · ${['바깥', '지붕', '실내'][it.cov || 0]}`; return id; }
+function renderSurveyList() {
+  const items = [...survey.entries()].filter(([, v]) => v.kind !== 'probe').sort((a, b) => (b[1].at || 0) - (a[1].at || 0));
+  $('#store-count').textContent = `기록 ${items.length}건`;
+  const c = k => items.filter(([, v]) => v.kind === k).length;
+  $('#stats').innerHTML = `<div><b>${c('ent')}/${ENT.length}</b><span>OSM 입구 확인</span></div><div><b>${c('newent')}</b><span>새로 찾은 입구</span></div><div><b>${c('bld')}</b><span>통과 가능 건물</span></div><div><b>${items.filter(([, v]) => v.kind === 'edge' && v.attr !== 'blocked').length}</b><span>지붕·실내 길</span></div><div><b>${items.filter(([, v]) => v.kind === 'edge' && v.attr === 'blocked').length}</b><span>막힌 길</span></div><div><b>${c('short')}</b><span>지름길</span></div>`;
+  const box = $('#items'); box.innerHTML = '';
+  if (!items.length) { box.innerHTML = '<div><span class="hint">아직 기록이 없습니다. 위 도구를 고르고 지도를 눌러 첫 기록을 남기세요.</span></div>'; return; }
+  for (const [id, it] of items.slice(0, 80)) { const r = document.createElement('div'), s = document.createElement('span'); s.textContent = itemLabel(id, it) + (it.note ? ` — ${it.note}` : '');
+    const b = document.createElement('button'); b.textContent = '삭제'; b.onclick = () => del(id); r.append(s, b); box.append(r); }
+}
+
+/* ================= 저장 (공유 저장소 → 없으면 이 브라우저) ================= */
+const BAKED = /*__SURVEY__*/{}; // 배포판: 조사 기록 묶음(공유 저장소를 쓸 수 없는 곳에서 기본값)
+async function put(id, it) { it = Object.assign({}, it, { at: Date.now() }); survey.set(id, it); afterSurvey(); if (readOnly) return;
+  if (dbCol) { try { await dbCol.doc(id).set(it); } catch (e) { if (e && e.code === 'invalid_argument') { readOnly = true; setStatus('읽기 전용: 이 화면에서는 기록을 저장할 수 없습니다', ''); } } }
+  else store.set('mwk-survey', Object.fromEntries(survey)); }
+async function del(id) { survey.delete(id); edgeRef.delete(id); afterSurvey(); if (dbCol) { try { await dbCol.doc(id).delete(); } catch (e) {} } else store.set('mwk-survey', Object.fromEntries(survey)); }
+function setStatus(t, cls) { const s = $('#store-status'); s.textContent = t; s.className = 'status ' + cls; }
+function afterSurvey() { G = buildGraph(); drawEdges(); drawEnts(); styleBuildings(); renderSurveyList(); refreshRoute(); if (sel) renderInsp(); }
+async function initStore() {
+  let ns = null; try { ns = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch (e) { ns = null; }
+  if (ns) { db = ns; dbCol = db.collection('survey'); setStatus('공유 저장소에 저장 중', 'ok');
+    dbCol.onSnapshot(snap => { survey = new Map(snap.docs.filter(d => d.exists).map(d => [d.id, Object.assign({}, d.data())])); edgeRef.clear(); afterSurvey(); }, () => setStatus('저장소 연결이 끊겼습니다. 새로고침해 주세요', ''));
+  } else { const saved = store.get('mwk-survey'); survey = new Map(Object.entries(Object.assign({}, BAKED, saved || {})));
+    setStatus(Object.keys(BAKED).length ? `현장조사 기록 ${Object.keys(BAKED).length}건 반영됨 · 추가 기록은 이 브라우저에만 저장` : '이 브라우저에만 저장 중 · 파일로 백업하세요', 'local'); afterSurvey(); }
+}
+$('#btn-export').onclick = async () => {
+  const text = JSON.stringify({ app: 'mywaykaist-survey', version: 2, exported: new Date().toISOString(), items: Object.fromEntries(survey) }, null, 1);
+  const name = `mywaykaist_survey_${kstParts().date}.json`;
+  let dl = null; try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) {}
+  if (dl) { try { await dl.save({ filename: name, data: text }); } catch (e) {} return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name; a.click();
+};
+$('#file-import').onchange = async ev => { const f = ev.target.files[0]; if (!f) return;
+  try { const j = JSON.parse(await f.text()); for (const [id, it] of Object.entries(j.items || {})) await put(id, it); } catch (e) { $('#tool-help').textContent = '파일을 읽지 못했습니다. 이 앱에서 저장한 기록 파일인지 확인해 주세요.'; }
+  ev.target.value = ''; };
+
+/* ================= 화면 연결 ================= */
+function saveUI() { const { o, d, date, min, w, alpha, noStairs, tool } = st; store.set('mwk-ui2', { o, d, date, min, w, alpha, noStairs, tool }); }
+function setTab(t) { st.tab = t; $('#tab-route').setAttribute('aria-pressed', t === 'route'); $('#tab-survey').setAttribute('aria-pressed', t === 'survey');
+  $('#sec-route').hidden = t !== 'route'; $('#sec-survey').hidden = t !== 'survey'; sel = null; draft = null; drawDraft(); drawEnts(); styleBuildings(); setTool(st.tool); }
+function setTool(t) { st.tool = t; [...document.querySelectorAll('#tools button')].forEach(b => b.setAttribute('aria-pressed', b.dataset.t === t)); $('#tool-help').textContent = HELP[t];
+  if (t !== 'short') { draft = null; drawDraft(); } sel = null; styleBuildings(); renderInsp(); saveUI(); }
+$('#tab-route').onclick = () => setTab('route'); $('#tab-survey').onclick = () => setTab('survey');
+document.querySelectorAll('#tools button').forEach(b => b.onclick = () => setTool(b.dataset.t));
+['o', 'd'].forEach(k => { $('#pick-' + k).onclick = () => { st.pick = st.pick === k ? null : k; syncPick(); };
+  $('#in-' + k).onchange = ev => { const b = BLD.find(x => x.name === ev.target.value.trim()); if (b) setOD(k, nodeForBuilding(b), b.name); }; });
+$('#swap').onclick = () => { [st.o, st.d] = [st.d, st.o]; const a = $('#in-o').value; $('#in-o').value = $('#in-d').value; $('#in-d').value = a; saveUI(); refreshRoute(); };
+$('#btn-now').onclick = () => { st.live = true; retime(); };
+const manualTime = () => { st.live = false; st.date = $('#in-date').value || kstParts().date; st.min = +$('#in-time').value; saveUI(); retime(); };
+$('#in-date').onchange = manualTime;
+let tq = null; $('#in-time').oninput = () => { const m = +$('#in-time').value; $('#out-time').textContent = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); clearTimeout(tq); tq = setTimeout(manualTime, 120); };
+setInterval(() => { if (st.live && document.visibilityState === 'visible') retime(); }, 5 * 60000);
+document.addEventListener('visibilitychange', () => { if (st.live && document.visibilityState === 'visible') retime(); });
+['d', 's', 'r'].forEach(k => { const el = $('#w-' + k); el.value = st.w[k]; el.oninput = () => { st.w[k] = +el.value; saveUI(); refreshRoute(); }; });
+$('#no-stairs').checked = st.noStairs; $('#no-stairs').onchange = ev => { st.noStairs = ev.target.checked; saveUI(); refreshRoute(); };
+document.querySelectorAll('#seg-alpha button').forEach(b => { b.setAttribute('aria-pressed', +b.dataset.a === st.alpha); b.onclick = () => { st.alpha = +b.dataset.a; document.querySelectorAll('#seg-alpha button').forEach(x => x.setAttribute('aria-pressed', x === b)); saveUI(); refreshRoute(); }; });
+$('#bl').innerHTML = [...new Set(BLD.filter(b => b.name).map(b => b.name))].sort((a, b) => a.localeCompare(b, 'ko')).map(n => `<option value="${n.replace(/"/g, '&quot;')}"></option>`).join('');
+$('#foot').innerHTML = `지도 데이터: OpenStreetMap 기여자 (ODbL) · 범위: ${D.meta.region} · 그림자: 건물 ${BLD.length}동(층수 정보 없는 건물은 같은 종류 건물의 중앙값 또는 3층, 층고 ${D.meta.floor_h} m로 가정) + 지도에 등록된 나무 ${TREES.length}그루 · 태양 위치: NOAA 계산식 · 보행 속도 ${WALK} m/s 가정`;
+
+function redrawAll() { drawStatic(); drawShadow(); drawEdges(); drawEnts(); styleBuildings(); legend(); refreshRoute(); }
+new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+
+computeSun();
+G = buildGraph();
+// 처음 화면: 예시 경로(아름관 → 창의학습관). 직접 바꿔 보세요.
+if (!st.o || !G.idx.has(st.o)) { const b = BLD.find(x => x.name && x.name.startsWith('아름관')); if (b) st.o = nodeForBuilding(b); }
+if (!st.d || !G.idx.has(st.d)) { const b = BLD.find(x => x.name && x.name.startsWith('창의학습관')); if (b) st.d = nodeForBuilding(b); }
+map.fitBounds(L.latLngBounds(D.campus.map(ll)), { padding: [12, 12] }); zoomClass();
+redrawAll(); syncTimeUI();
+$('#in-o').value = labelFor(st.o); $('#in-d').value = labelFor(st.d);
+setTool(st.tool);
+initStore();
+</script>
